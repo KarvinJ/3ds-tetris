@@ -1,7 +1,5 @@
 #pragma once
 
-#include <3ds/svc.h>
-#include <3ds/types.h>
 #include <citro2d.h>
 
 const u32 WHITE = C2D_Color32(0xFF, 0xFF, 0xFF, 0xFF);
