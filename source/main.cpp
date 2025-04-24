@@ -1,4 +1,10 @@
 #include "graphics.h"
+#include <vector>
+#include <string>
+#include <map>
+
+using std::map;
+using std::vector;
 
 // the 3ds has different screen width, but the same screen height.
 const int TOP_SCREEN_WIDTH = 400;
@@ -8,10 +14,6 @@ const int SCREEN_HEIGHT = 240;
 C3D_RenderTarget *topScreen = nullptr;
 C3D_RenderTarget *bottomScreen = nullptr;
 
-bool isGamePaused;
-
-int collisionCounter;
-
 C2D_TextBuf textDynamicBuffer;
 
 C2D_TextBuf textStaticBuffer;
@@ -19,66 +21,451 @@ C2D_Text staticTexts[1];
 
 float textSize = 1.0f;
 
-Sprite playerSprite;
+const int TOTAL_ROWS = 12;
+const int TOTAL_COLUMNS = 10;
+const int CELL_SIZE = 20;
 
-Rectangle ball = {TOP_SCREEN_WIDTH / 2 - 50, SCREEN_HEIGHT / 2, 0, 20, 20, WHITE};
-Rectangle bottomBounds = {BOTTOM_SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 0, 32, 32, BLUE};
-Rectangle touchBounds = {0, 0, 0, 8, 8, WHITE};
+int grid[TOTAL_ROWS][TOTAL_COLUMNS];
 
-const int PLAYER_SPEED = 10;
+const int POSITION_OFFSET = 2;
+const int CELL_OFFSET = 2;
 
-int ballVelocityX = 5;
-int ballVelocityY = 5;
+bool isGamePaused;
+bool isGameOver;
 
-void update()
+int score;
+
+typedef struct Vector2
 {
-	// Respond to user input
-	int keyHeld = hidKeysHeld();
+	float x;
+	float y;
+} Vector2;
 
-	if (keyHeld & KEY_LEFT && playerSprite.bounds.x > 0)
+typedef struct
+{
+	int id;
+	map<int, vector<Vector2>> cells;
+	int rotationState;
+	int columnOffset;
+	int rowOffset;
+} Block;
+
+Block lBlock;
+Block jBlock;
+Block iBlock;
+Block oBlock;
+Block sBlock;
+Block tBlock;
+Block zBlock;
+Block currentBlock;
+Block nextBlock;
+
+vector<Block> blocks;
+
+vector<Vector2> getCellPositions(Block &block)
+{
+	// getting the reference of the vector instead of copying to create a new one.
+	vector<Vector2> &blockTiles = block.cells[block.rotationState];
+
+	vector<Vector2> movedTiles;
+	movedTiles.reserve(blockTiles.size());
+
+	for (Vector2 blockTile : blockTiles)
 	{
-		playerSprite.bounds.x -= PLAYER_SPEED;
+		Vector2 newPosition = {blockTile.x + block.rowOffset, blockTile.y + block.columnOffset};
+		movedTiles.push_back(newPosition);
 	}
 
-	else if (keyHeld & KEY_RIGHT && playerSprite.bounds.x < TOP_SCREEN_WIDTH - playerSprite.bounds.w)
+	return movedTiles;
+}
+
+bool isCellOutside(int cellRow, int cellColumn)
+{
+	if (cellRow >= 0 && cellRow < TOTAL_ROWS && cellColumn >= 0 && cellColumn < TOTAL_COLUMNS)
 	{
-		playerSprite.bounds.x += PLAYER_SPEED;
+		return false;
 	}
 
-	else if (keyHeld & KEY_UP && playerSprite.bounds.y > 0)
+	return true;
+}
+
+bool isBlockOutside(Block &block)
+{
+	vector<Vector2> blockTiles = getCellPositions(block);
+
+	for (Vector2 blockTile : blockTiles)
 	{
-		playerSprite.bounds.y -= PLAYER_SPEED;
+		if (isCellOutside(blockTile.x, blockTile.y))
+		{
+			return true;
+		}
 	}
 
-	else if (keyHeld & KEY_DOWN && playerSprite.bounds.y < SCREEN_HEIGHT - playerSprite.bounds.h)
+	return false;
+}
+
+void undoRotation(Block &block)
+{
+	block.rotationState--;
+
+	if (block.rotationState == -1)
 	{
-		playerSprite.bounds.y += PLAYER_SPEED;
+		block.rotationState = block.cells.size() - 1;
+	}
+}
+
+bool isCellEmpty(int rowToCheck, int columnToCheck)
+{
+	if (grid[rowToCheck][columnToCheck] == 0)
+	{
+		return true;
 	}
 
-	if (ball.x < 0 || ball.x > TOP_SCREEN_WIDTH - ball.w)
+	return false;
+}
+
+bool blockFits(Block &block)
+{
+	auto blockCells = getCellPositions(block);
+
+	// I need to write in the grid the id of the block that I'm going to lock
+	for (Vector2 blockCell : blockCells)
 	{
-		ballVelocityX *= -1;
-		ball.color = GREEN;
+		if (!isCellEmpty(blockCell.x, blockCell.y))
+		{
+			return false;
+		}
 	}
 
-	else if (ball.y < 0 || ball.y > SCREEN_HEIGHT - ball.h)
+	return true;
+}
+
+void rotateBlock(Block &block)
+{
+	block.rotationState++;
+
+	if (block.rotationState == (int)block.cells.size())
 	{
-		ballVelocityY *= -1;
-		ball.color = RED;
+		block.rotationState = 0;
 	}
 
-	else if (hasCollision(playerSprite.bounds, ball))
+	if (isBlockOutside(block) || !blockFits(currentBlock))
 	{
-		ballVelocityX *= -1;
-		ballVelocityY *= -1;
+		undoRotation(block);
+	}
+}
 
-		ball.color = BLUE;
+void moveBlock(Block &block, int rowsToMove, int columnsToMove)
+{
+	block.rowOffset += rowsToMove;
+	block.columnOffset += columnsToMove;
+}
 
-		collisionCounter++;
+int rand_range(int min, int max)
+{
+	return min + rand() / (RAND_MAX / (max - min + 1) + 1);
+}
+
+Block getRandomBlock()
+{
+	if (blocks.empty())
+	{
+		blocks = {lBlock, jBlock, iBlock, oBlock, sBlock, tBlock, zBlock};
 	}
 
-	ball.x += ballVelocityX;
-	ball.y += ballVelocityY;
+	int randomIndex = rand_range(0, blocks.size() - 1);
+
+	Block actualBlock = blocks[randomIndex];
+	blocks.erase(blocks.begin() + randomIndex);
+
+	return actualBlock;
+}
+
+bool isRowFull(int rowToCheck)
+{
+	for (int column = 0; column < TOTAL_COLUMNS; column++)
+	{
+		if (grid[rowToCheck][column] == 0)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+void clearRow(int rowToClear)
+{
+	for (int column = 0; column < TOTAL_COLUMNS; column++)
+	{
+		grid[rowToClear][column] = 0;
+	}
+}
+
+void moveRowDown(int row, int totalRows)
+{
+	for (int column = 0; column < TOTAL_COLUMNS; column++)
+	{
+		grid[row + totalRows][column] = grid[row][column];
+		grid[row][column] = 0;
+	}
+}
+
+int clearFullRow()
+{
+	int completedRow = 0;
+	for (int row = TOTAL_ROWS - 1; row >= 0; row--)
+	{
+		if (isRowFull(row))
+		{
+			clearRow(row);
+			completedRow++;
+		}
+		else if (completedRow > 0)
+		{
+			moveRowDown(row, completedRow);
+		}
+	}
+
+	return completedRow;
+}
+
+void lockBlock(Block &block)
+{
+	auto blockCells = getCellPositions(block);
+
+	// I need to write in the grid the id of the block that I'm going to lock
+	for (Vector2 blockCell : blockCells)
+	{
+		grid[(int)blockCell.x][(int)blockCell.y] = block.id;
+	}
+
+	// and then update the current and next blocks.
+	block = nextBlock;
+
+	if (!blockFits(block))
+	{
+		isGameOver = true;
+	}
+
+	nextBlock = getRandomBlock();
+
+	int totalClearRows = clearFullRow();
+
+	if (totalClearRows == 1)
+	{
+		score += 100;
+	}
+
+	else if (totalClearRows == 2)
+	{
+		score += 300;
+	}
+
+	else if (totalClearRows > 2)
+	{
+		score += 500;
+	}
+}
+
+void initializeGrid()
+{
+	for (int row = 0; row < TOTAL_ROWS; row++)
+	{
+		for (int column = 0; column < TOTAL_COLUMNS; column++)
+		{
+			grid[row][column] = 0;
+		}
+	}
+}
+
+double lastUpdateTime = 0;
+
+bool eventTriggered(float deltaTime, float intervalUpdate)
+{
+	lastUpdateTime += deltaTime;
+
+	if (lastUpdateTime >= intervalUpdate)
+	{
+		lastUpdateTime = 0;
+
+		return true;
+	}
+
+	return false;
+}
+
+void update(int keyDown)
+{
+	if (keyDown & KEY_UP)
+	{
+		rotateBlock(currentBlock);
+	}
+
+	if (keyDown & KEY_RIGHT)
+	{
+		moveBlock(currentBlock, 0, 1);
+
+		if (isBlockOutside(currentBlock) || !blockFits(currentBlock))
+		{
+			moveBlock(currentBlock, 0, -1);
+		}
+	}
+
+	else if (keyDown & KEY_LEFT)
+	{
+		moveBlock(currentBlock, 0, -1);
+
+		if (isBlockOutside(currentBlock) || !blockFits(currentBlock))
+		{
+			moveBlock(currentBlock, 0, 1);
+		}
+	}
+
+	if (!isGameOver && keyDown & KEY_DOWN)
+	{
+		score++;
+        moveBlock(currentBlock, 1, 0);
+
+        if (isBlockOutside(currentBlock) || !blockFits(currentBlock))
+        {
+            moveBlock(currentBlock, -1, 0);
+            lockBlock(currentBlock);
+        }
+	}
+
+	// if (!isGameOver && eventTriggered(deltaTime, 0.5))
+    // {
+    //     moveBlock(currentBlock, 1, 0);
+
+    //     if (isBlockOutside(currentBlock) || !blockFits(currentBlock))
+    //     {
+    //         moveBlock(currentBlock, -1, 0);
+    //         lockBlock(currentBlock);
+    //     }
+    // }
+}
+
+void initializeBlocks()
+{
+    // defining Blocks 4 rotations with a map id and vector2 2
+    lBlock.id = 1;
+    lBlock.cells[0] = {{0, 2}, {1, 0}, {1, 1}, {1, 2}};
+    lBlock.cells[1] = {{0, 1}, {1, 1}, {2, 1}, {2, 2}};
+    lBlock.cells[2] = {{1, 0}, {1, 1}, {1, 2}, {2, 0}};
+    lBlock.cells[3] = {{0, 0}, {0, 1}, {1, 1}, {2, 1}};
+    // for all the block to start in the midle of the grid, I need to move to the (0, 3)
+    moveBlock(lBlock, 0, 3);
+
+    jBlock.id = 2;
+    jBlock.cells[0] = {{0, 0}, {1, 0}, {1, 1}, {1, 2}};
+    jBlock.cells[1] = {{0, 1}, {0, 2}, {1, 1}, {2, 1}};
+    jBlock.cells[2] = {{1, 0}, {1, 1}, {1, 2}, {2, 2}};
+    jBlock.cells[3] = {{0, 1}, {1, 1}, {2, 0}, {2, 1}};
+
+    moveBlock(jBlock, 0, 3);
+
+    iBlock.id = 3;
+    iBlock.cells[0] = {{1, 0}, {1, 1}, {1, 2}, {1, 3}};
+    iBlock.cells[1] = {{0, 2}, {1, 2}, {2, 2}, {3, 2}};
+    iBlock.cells[2] = {{2, 0}, {2, 1}, {2, 2}, {2, 3}};
+    iBlock.cells[3] = {{0, 1}, {1, 1}, {2, 1}, {3, 1}};
+
+    moveBlock(iBlock, -1, 3);
+
+    // I don't need rotaion with this block
+    oBlock.id = 4;
+    oBlock.cells[0] = {{0, 0}, {0, 1}, {1, 0}, {1, 1}};
+
+    moveBlock(oBlock, 0, 4);
+
+    sBlock.id = 5;
+    sBlock.cells[0] = {{0, 1}, {0, 2}, {1, 0}, {1, 1}};
+    sBlock.cells[1] = {{0, 1}, {1, 1}, {1, 2}, {2, 2}};
+    sBlock.cells[2] = {{1, 1}, {1, 2}, {2, 0}, {2, 1}};
+    sBlock.cells[3] = {{0, 0}, {1, 0}, {1, 1}, {2, 1}};
+
+    moveBlock(sBlock, 0, 3);
+
+    tBlock.id = 6;
+    tBlock.cells[0] = {{0, 1}, {1, 0}, {1, 1}, {1, 2}};
+    tBlock.cells[1] = {{0, 1}, {1, 1}, {1, 2}, {2, 1}};
+    tBlock.cells[2] = {{1, 0}, {1, 1}, {1, 2}, {2, 1}};
+    tBlock.cells[3] = {{0, 1}, {1, 0}, {1, 1}, {2, 1}};
+
+    moveBlock(tBlock, 0, 3);
+
+    zBlock.id = 7;
+    zBlock.cells[0] = {{0, 0}, {0, 1}, {1, 1}, {1, 2}};
+    zBlock.cells[1] = {{0, 2}, {1, 1}, {1, 2}, {2, 1}};
+    zBlock.cells[2] = {{1, 0}, {1, 1}, {2, 1}, {2, 2}};
+    zBlock.cells[3] = {{0, 1}, {1, 0}, {1, 1}, {2, 0}};
+
+    moveBlock(zBlock, 0, 3);
+
+    blocks.reserve(7);
+    blocks = {lBlock, jBlock, iBlock, oBlock, sBlock, tBlock, zBlock};
+
+    currentBlock = getRandomBlock();
+    nextBlock = getRandomBlock();
+}
+
+u32 getColorByIndex(int index)
+{
+    // const u32 lightGrey = {80, 80, 80, 255};
+    // const u32 green = {47, 230, 23, 255};
+    // const u32 red = {232, 18, 18, 255};
+    // const u32 orange = {226, 116, 17, 255};
+    // const u32 yellow = {237, 234, 4, 255};
+    // const u32 purple = {166, 0, 247, 255};
+    // const u32 cyan = {21, 204, 209, 255};
+    // const u32 blue = {13, 64, 216, 255};
+
+    u32 colors[] = {WHITE, BLACK, YELLOW, GREEN, RED, BLUE, BROWN, BLUE};
+
+    return colors[index];
+}
+
+void drawGrid()
+{
+    for (int row = 0; row < TOTAL_ROWS; row++)
+    {
+        for (int column = 0; column < TOTAL_COLUMNS; column++)
+        {
+            int cellValue = grid[row][column];
+
+            u32 cellColor = getColorByIndex(cellValue);
+
+            Rectangle rect = {(float)column * CELL_SIZE + POSITION_OFFSET, (float)row * CELL_SIZE + POSITION_OFFSET, 0, CELL_SIZE - CELL_OFFSET, CELL_SIZE - CELL_OFFSET, cellColor};
+            drawRectangle(rect);
+        }
+    }
+}
+
+void drawBlock(Block &block, int offsetX, int offsetY)
+{
+    vector<Vector2> blockTiles = getCellPositions(block);
+
+    for (Vector2 blockTile : blockTiles)
+    {
+        u32 cellColor = getColorByIndex(block.id);
+
+        Rectangle rect = {blockTile.y * CELL_SIZE + offsetX, blockTile.x * CELL_SIZE + offsetY, 0, CELL_SIZE - CELL_OFFSET, CELL_SIZE - CELL_OFFSET, cellColor};
+		drawRectangle(rect);
+    }
+}
+
+void drawBlock(Block &block)
+{
+    vector<Vector2> blockTiles = getCellPositions(block);
+
+    for (Vector2 blockTile : blockTiles)
+    {
+		u32 cellColor = getColorByIndex(block.id);
+
+        Rectangle rect = {(float)blockTile.y * CELL_SIZE + POSITION_OFFSET, blockTile.x * CELL_SIZE + POSITION_OFFSET, 0, CELL_SIZE - CELL_OFFSET, CELL_SIZE - CELL_OFFSET, cellColor};
+        drawRectangle(rect);
+    }
 }
 
 void renderTopScreen()
@@ -87,24 +474,12 @@ void renderTopScreen()
 	C2D_TargetClear(topScreen, BLACK);
 	C2D_SceneBegin(topScreen);
 
-	// (float x, float y, float z, float  w, float h, u32 clr)
-	drawRectangle(ball);
+	drawGrid();
 
-	drawSprite(playerSprite);
+    drawBlock(currentBlock);
 
 	if (isGamePaused)
 	{
-		// Draws text using the GPU.
-
-		// Parameters
-		//     [in]	text	Pointer to text object.
-		//     [in]	flags	Text drawing flags.
-		//     [in]	x	Horizontal position to draw the text on.
-		//     [in]	y	Vertical position to draw the text on. If C2D_AtBaseline is not specified (default), this is the top left corner of the block of text; otherwise this is the position of the baseline of the first line of text.
-		//     [in]	z	Depth value of the text. If unsure, pass 0.0f.
-		//     [in]	scaleX	Horizontal textSize of the font. 1.0f corresponds to the native textSize of the font.
-		//     [in]	scaleY	Vertical textSize of the font. 1.0f corresponds to the native textSize of the font.
-		// Draw static text strings
 		C2D_DrawText(&staticTexts[0], C2D_AtBaseline | C2D_WithColor, 110, 60, 0, textSize, textSize, WHITE);
 	}
 
@@ -117,38 +492,33 @@ void renderBottomScreen()
 	C2D_TargetClear(bottomScreen, BLACK);
 	C2D_SceneBegin(bottomScreen);
 
-	drawRectangle(bottomBounds);
+	// drawRectangle(bottomBounds);
 
-	drawDynamicText("Total collisions: %d", collisionCounter, textDynamicBuffer, 150, 175, textSize);
+	// drawDynamicText("Total collisions: %d", 0, textDynamicBuffer, 150, 175, textSize);
 
 	C3D_FrameEnd(0);
 }
 
 int main(int argc, char *argv[])
 {
-	// Init libs
 	romfsInit();
 	gfxInitDefault();
 	C3D_Init(C3D_DEFAULT_CMDBUF_SIZE);
 	C2D_Init(C2D_DEFAULT_MAX_OBJECTS);
 	C2D_Prepare();
 
-	// Create top and bottom screens
 	topScreen = C2D_CreateScreenTarget(GFX_TOP, GFX_LEFT);
 	bottomScreen = C2D_CreateScreenTarget(GFX_BOTTOM, GFX_LEFT);
 
-	// Create two text buffers: one for static text, and another one for
-	// dynamic text - the latter will be cleared at each frame.
-	textStaticBuffer = C2D_TextBufNew(1024); // support up to 4096 glyphs in the buffer
+	textStaticBuffer = C2D_TextBufNew(1024);
 	textDynamicBuffer = C2D_TextBufNew(4096);
 
-	// Parse the static text strings
 	C2D_TextParse(&staticTexts[0], textStaticBuffer, "Game Paused");
 
-	// Optimize the static text strings
 	C2D_TextOptimize(&staticTexts[0]);
 
-	playerSprite = loadSprite("alien_1.t3x", TOP_SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 32, 32);
+	initializeGrid();
+    initializeBlocks();
 
 	touchPosition touch;
 
@@ -157,26 +527,7 @@ int main(int argc, char *argv[])
 	{
 		hidScanInput();
 
-		// Read the touch screen coordinates
 		hidTouchRead(&touch);
-
-		if (touch.px > 0 && touch.py > 0 && touch.px < BOTTOM_SCREEN_WIDTH - bottomBounds.w && touch.py < SCREEN_HEIGHT - bottomBounds.h)
-		{
-			bottomBounds.x = touch.px;
-			bottomBounds.y = touch.py;
-		}
-
-		touchBounds.x = touch.px;
-		touchBounds.y = touch.py;
-
-		if (hasCollision(touchBounds, bottomBounds))
-		{
-			bottomBounds.color = RED;
-		}
-		else
-		{
-			bottomBounds.color = BLUE;
-		}
 
 		int keyDown = hidKeysDown();
 
@@ -187,7 +538,7 @@ int main(int argc, char *argv[])
 
 		if (!isGamePaused)
 		{
-			update();
+			update(keyDown);
 		}
 
 		renderTopScreen();
