@@ -325,147 +325,147 @@ void update(int keyDown)
 	if (!isGameOver && keyDown & KEY_DOWN)
 	{
 		score++;
-        moveBlock(currentBlock, 1, 0);
+		moveBlock(currentBlock, 1, 0);
 
-        if (isBlockOutside(currentBlock) || !blockFits(currentBlock))
-        {
-            moveBlock(currentBlock, -1, 0);
-            lockBlock(currentBlock);
-        }
+		if (isBlockOutside(currentBlock) || !blockFits(currentBlock))
+		{
+			moveBlock(currentBlock, -1, 0);
+			lockBlock(currentBlock);
+		}
 	}
 
 	// if (!isGameOver && eventTriggered(deltaTime, 0.5))
-    // {
-    //     moveBlock(currentBlock, 1, 0);
+	// {
+	//     moveBlock(currentBlock, 1, 0);
 
-    //     if (isBlockOutside(currentBlock) || !blockFits(currentBlock))
-    //     {
-    //         moveBlock(currentBlock, -1, 0);
-    //         lockBlock(currentBlock);
-    //     }
-    // }
+	//     if (isBlockOutside(currentBlock) || !blockFits(currentBlock))
+	//     {
+	//         moveBlock(currentBlock, -1, 0);
+	//         lockBlock(currentBlock);
+	//     }
+	// }
 }
 
 void initializeBlocks()
 {
-    // defining Blocks 4 rotations with a map id and vector2 2
-    lBlock.id = 1;
-    lBlock.cells[0] = {{0, 2}, {1, 0}, {1, 1}, {1, 2}};
-    lBlock.cells[1] = {{0, 1}, {1, 1}, {2, 1}, {2, 2}};
-    lBlock.cells[2] = {{1, 0}, {1, 1}, {1, 2}, {2, 0}};
-    lBlock.cells[3] = {{0, 0}, {0, 1}, {1, 1}, {2, 1}};
-    // for all the block to start in the midle of the grid, I need to move to the (0, 3)
-    moveBlock(lBlock, 0, 3);
+	// defining Blocks 4 rotations with a map id and vector2 2
+	lBlock.id = 1;
+	lBlock.cells[0] = {{0, 2}, {1, 0}, {1, 1}, {1, 2}};
+	lBlock.cells[1] = {{0, 1}, {1, 1}, {2, 1}, {2, 2}};
+	lBlock.cells[2] = {{1, 0}, {1, 1}, {1, 2}, {2, 0}};
+	lBlock.cells[3] = {{0, 0}, {0, 1}, {1, 1}, {2, 1}};
+	// for all the block to start in the midle of the grid, I need to move to the (0, 3)
+	moveBlock(lBlock, 0, 3);
 
-    jBlock.id = 2;
-    jBlock.cells[0] = {{0, 0}, {1, 0}, {1, 1}, {1, 2}};
-    jBlock.cells[1] = {{0, 1}, {0, 2}, {1, 1}, {2, 1}};
-    jBlock.cells[2] = {{1, 0}, {1, 1}, {1, 2}, {2, 2}};
-    jBlock.cells[3] = {{0, 1}, {1, 1}, {2, 0}, {2, 1}};
+	jBlock.id = 2;
+	jBlock.cells[0] = {{0, 0}, {1, 0}, {1, 1}, {1, 2}};
+	jBlock.cells[1] = {{0, 1}, {0, 2}, {1, 1}, {2, 1}};
+	jBlock.cells[2] = {{1, 0}, {1, 1}, {1, 2}, {2, 2}};
+	jBlock.cells[3] = {{0, 1}, {1, 1}, {2, 0}, {2, 1}};
 
-    moveBlock(jBlock, 0, 3);
+	moveBlock(jBlock, 0, 3);
 
-    iBlock.id = 3;
-    iBlock.cells[0] = {{1, 0}, {1, 1}, {1, 2}, {1, 3}};
-    iBlock.cells[1] = {{0, 2}, {1, 2}, {2, 2}, {3, 2}};
-    iBlock.cells[2] = {{2, 0}, {2, 1}, {2, 2}, {2, 3}};
-    iBlock.cells[3] = {{0, 1}, {1, 1}, {2, 1}, {3, 1}};
+	iBlock.id = 3;
+	iBlock.cells[0] = {{1, 0}, {1, 1}, {1, 2}, {1, 3}};
+	iBlock.cells[1] = {{0, 2}, {1, 2}, {2, 2}, {3, 2}};
+	iBlock.cells[2] = {{2, 0}, {2, 1}, {2, 2}, {2, 3}};
+	iBlock.cells[3] = {{0, 1}, {1, 1}, {2, 1}, {3, 1}};
 
-    moveBlock(iBlock, -1, 3);
+	moveBlock(iBlock, -1, 3);
 
-    // I don't need rotaion with this block
-    oBlock.id = 4;
-    oBlock.cells[0] = {{0, 0}, {0, 1}, {1, 0}, {1, 1}};
+	// I don't need rotaion with this block
+	oBlock.id = 4;
+	oBlock.cells[0] = {{0, 0}, {0, 1}, {1, 0}, {1, 1}};
 
-    moveBlock(oBlock, 0, 4);
+	moveBlock(oBlock, 0, 4);
 
-    sBlock.id = 5;
-    sBlock.cells[0] = {{0, 1}, {0, 2}, {1, 0}, {1, 1}};
-    sBlock.cells[1] = {{0, 1}, {1, 1}, {1, 2}, {2, 2}};
-    sBlock.cells[2] = {{1, 1}, {1, 2}, {2, 0}, {2, 1}};
-    sBlock.cells[3] = {{0, 0}, {1, 0}, {1, 1}, {2, 1}};
+	sBlock.id = 5;
+	sBlock.cells[0] = {{0, 1}, {0, 2}, {1, 0}, {1, 1}};
+	sBlock.cells[1] = {{0, 1}, {1, 1}, {1, 2}, {2, 2}};
+	sBlock.cells[2] = {{1, 1}, {1, 2}, {2, 0}, {2, 1}};
+	sBlock.cells[3] = {{0, 0}, {1, 0}, {1, 1}, {2, 1}};
 
-    moveBlock(sBlock, 0, 3);
+	moveBlock(sBlock, 0, 3);
 
-    tBlock.id = 6;
-    tBlock.cells[0] = {{0, 1}, {1, 0}, {1, 1}, {1, 2}};
-    tBlock.cells[1] = {{0, 1}, {1, 1}, {1, 2}, {2, 1}};
-    tBlock.cells[2] = {{1, 0}, {1, 1}, {1, 2}, {2, 1}};
-    tBlock.cells[3] = {{0, 1}, {1, 0}, {1, 1}, {2, 1}};
+	tBlock.id = 6;
+	tBlock.cells[0] = {{0, 1}, {1, 0}, {1, 1}, {1, 2}};
+	tBlock.cells[1] = {{0, 1}, {1, 1}, {1, 2}, {2, 1}};
+	tBlock.cells[2] = {{1, 0}, {1, 1}, {1, 2}, {2, 1}};
+	tBlock.cells[3] = {{0, 1}, {1, 0}, {1, 1}, {2, 1}};
 
-    moveBlock(tBlock, 0, 3);
+	moveBlock(tBlock, 0, 3);
 
-    zBlock.id = 7;
-    zBlock.cells[0] = {{0, 0}, {0, 1}, {1, 1}, {1, 2}};
-    zBlock.cells[1] = {{0, 2}, {1, 1}, {1, 2}, {2, 1}};
-    zBlock.cells[2] = {{1, 0}, {1, 1}, {2, 1}, {2, 2}};
-    zBlock.cells[3] = {{0, 1}, {1, 0}, {1, 1}, {2, 0}};
+	zBlock.id = 7;
+	zBlock.cells[0] = {{0, 0}, {0, 1}, {1, 1}, {1, 2}};
+	zBlock.cells[1] = {{0, 2}, {1, 1}, {1, 2}, {2, 1}};
+	zBlock.cells[2] = {{1, 0}, {1, 1}, {2, 1}, {2, 2}};
+	zBlock.cells[3] = {{0, 1}, {1, 0}, {1, 1}, {2, 0}};
 
-    moveBlock(zBlock, 0, 3);
+	moveBlock(zBlock, 0, 3);
 
-    blocks.reserve(7);
-    blocks = {lBlock, jBlock, iBlock, oBlock, sBlock, tBlock, zBlock};
+	blocks.reserve(7);
+	blocks = {lBlock, jBlock, iBlock, oBlock, sBlock, tBlock, zBlock};
 
-    currentBlock = getRandomBlock();
-    nextBlock = getRandomBlock();
+	currentBlock = getRandomBlock();
+	nextBlock = getRandomBlock();
 }
 
 u32 getColorByIndex(int index)
 {
-    // const u32 lightGrey = {80, 80, 80, 255};
-    // const u32 green = {47, 230, 23, 255};
-    // const u32 red = {232, 18, 18, 255};
-    // const u32 orange = {226, 116, 17, 255};
-    // const u32 yellow = {237, 234, 4, 255};
-    // const u32 purple = {166, 0, 247, 255};
-    // const u32 cyan = {21, 204, 209, 255};
-    // const u32 blue = {13, 64, 216, 255};
+	const u32 lightGrey = C2D_Color32(80, 80, 80, 255);
+	const u32 green = C2D_Color32(47, 230, 23, 255);
+	const u32 red = C2D_Color32(232, 18, 18, 255);
+	const u32 orange = C2D_Color32(226, 116, 17, 255);
+	const u32 yellow = C2D_Color32(237, 234, 4, 255);
+	const u32 purple = C2D_Color32(166, 0, 247, 255);
+	const u32 cyan = C2D_Color32(21, 204, 209, 255);
+	const u32 blue = C2D_Color32(13, 64, 216, 255);
 
-    u32 colors[] = {WHITE, BLACK, YELLOW, GREEN, RED, BLUE, BROWN, BLUE};
+	u32 colors[] = {lightGrey, green, red, orange, yellow, purple, cyan, blue};
 
-    return colors[index];
+	return colors[index];
 }
 
 void drawGrid()
 {
-    for (int row = 0; row < TOTAL_ROWS; row++)
-    {
-        for (int column = 0; column < TOTAL_COLUMNS; column++)
-        {
-            int cellValue = grid[row][column];
+	for (int row = 0; row < TOTAL_ROWS; row++)
+	{
+		for (int column = 0; column < TOTAL_COLUMNS; column++)
+		{
+			int cellValue = grid[row][column];
 
-            u32 cellColor = getColorByIndex(cellValue);
+			u32 cellColor = getColorByIndex(cellValue);
 
-            Rectangle rect = {(float)column * CELL_SIZE + POSITION_OFFSET, (float)row * CELL_SIZE + POSITION_OFFSET, 0, CELL_SIZE - CELL_OFFSET, CELL_SIZE - CELL_OFFSET, cellColor};
-            drawRectangle(rect);
-        }
-    }
+			Rectangle rect = {(float)column * CELL_SIZE + POSITION_OFFSET, (float)row * CELL_SIZE + POSITION_OFFSET, 0, CELL_SIZE - CELL_OFFSET, CELL_SIZE - CELL_OFFSET, cellColor};
+			drawRectangle(rect);
+		}
+	}
 }
 
 void drawBlock(Block &block, int offsetX, int offsetY)
 {
-    vector<Vector2> blockTiles = getCellPositions(block);
+	vector<Vector2> blockTiles = getCellPositions(block);
 
-    for (Vector2 blockTile : blockTiles)
-    {
-        u32 cellColor = getColorByIndex(block.id);
+	for (Vector2 blockTile : blockTiles)
+	{
+		u32 cellColor = getColorByIndex(block.id);
 
-        Rectangle rect = {blockTile.y * CELL_SIZE + offsetX, blockTile.x * CELL_SIZE + offsetY, 0, CELL_SIZE - CELL_OFFSET, CELL_SIZE - CELL_OFFSET, cellColor};
+		Rectangle rect = {blockTile.y * CELL_SIZE + offsetX, blockTile.x * CELL_SIZE + offsetY, 0, CELL_SIZE - CELL_OFFSET, CELL_SIZE - CELL_OFFSET, cellColor};
 		drawRectangle(rect);
-    }
+	}
 }
 
 void drawBlock(Block &block)
 {
-    vector<Vector2> blockTiles = getCellPositions(block);
+	vector<Vector2> blockTiles = getCellPositions(block);
 
-    for (Vector2 blockTile : blockTiles)
-    {
+	for (Vector2 blockTile : blockTiles)
+	{
 		u32 cellColor = getColorByIndex(block.id);
 
-        Rectangle rect = {(float)blockTile.y * CELL_SIZE + POSITION_OFFSET, blockTile.x * CELL_SIZE + POSITION_OFFSET, 0, CELL_SIZE - CELL_OFFSET, CELL_SIZE - CELL_OFFSET, cellColor};
-        drawRectangle(rect);
-    }
+		Rectangle rect = {(float)blockTile.y * CELL_SIZE + POSITION_OFFSET, blockTile.x * CELL_SIZE + POSITION_OFFSET, 0, CELL_SIZE - CELL_OFFSET, CELL_SIZE - CELL_OFFSET, cellColor};
+		drawRectangle(rect);
+	}
 }
 
 void renderTopScreen()
@@ -476,7 +476,7 @@ void renderTopScreen()
 
 	drawGrid();
 
-    drawBlock(currentBlock);
+	drawBlock(currentBlock);
 
 	if (isGamePaused)
 	{
@@ -518,7 +518,7 @@ int main(int argc, char *argv[])
 	C2D_TextOptimize(&staticTexts[0]);
 
 	initializeGrid();
-    initializeBlocks();
+	initializeBlocks();
 
 	touchPosition touch;
 

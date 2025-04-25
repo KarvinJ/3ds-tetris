@@ -2,8 +2,8 @@
 
 #include <citro2d.h>
 
-const u32 WHITE = C2D_Color32(0xFF, 0xFF, 0xFF, 0xFF);
-const u32 BLACK = C2D_Color32(0x00, 0x00, 0x00, 0x00);
+const u32 WHITE = C2D_Color32(255, 255, 255, 255);
+const u32 BLACK = C2D_Color32(0, 0, 0, 0);
 const u32 YELLOW = C2D_Color32(0xF3, 0xD8, 0x3F, 0xFF);
 const u32 GREEN = C2D_Color32(0x00, 0xFF, 0x00, 0xFF);
 const u32 RED = C2D_Color32(0xFF, 0x00, 0x00, 0xFF);
