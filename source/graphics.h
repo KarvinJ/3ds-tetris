@@ -9,6 +9,8 @@ const u32 GREEN = C2D_Color32(0x00, 0xFF, 0x00, 0xFF);
 const u32 RED = C2D_Color32(0xFF, 0x00, 0x00, 0xFF);
 const u32 BLUE = C2D_Color32(0x00, 0x00, 0xFF, 0xFF);
 const u32 BROWN = C2D_Color32(0x1D, 0x1D, 0x1B, 0xFF);
+const u32 DARK_GRAY = C2D_Color32(29, 29, 27, 255);
+const u32 LIGHT_GRAY = C2D_Color32(80, 80, 80, 255);
 
 typedef struct
 {

@@ -14,13 +14,19 @@ const int SCREEN_HEIGHT = 240;
 C3D_RenderTarget *topScreen = nullptr;
 C3D_RenderTarget *bottomScreen = nullptr;
 
-C2D_TextBuf textDynamicBuffer;
+C2D_TextBuf scoreDynamicBuffer;
 
 C2D_TextBuf pauseTextStaticBuffer;
 C2D_Text pauseStaticTexts[1];
 
 C2D_TextBuf gameOverTextStaticBuffer;
 C2D_Text gameOverStaticTexts[1];
+
+C2D_TextBuf scoreTextStaticBuffer;
+C2D_Text scoreStaticTexts[1];
+
+C2D_TextBuf nextTextStaticBuffer;
+C2D_Text nextStaticTexts[1];
 
 float textSize = 1.0f;
 
@@ -491,14 +497,38 @@ void drawBlock(Block &block)
 void renderTopScreen()
 {
 	C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
-	C2D_TargetClear(topScreen, BLACK);
+	C2D_TargetClear(topScreen, DARK_GRAY);
 	C2D_SceneBegin(topScreen);
 
 	drawGrid();
 
 	drawBlock(currentBlock);
 
-	drawDynamicText("score: %d", score, textDynamicBuffer, 300, 50, textSize);
+	C2D_DrawText(&scoreStaticTexts[0], C2D_AtBaseline | C2D_WithColor, 250, 40, 0, textSize, textSize, WHITE);
+	Rectangle scorePlaceHolderRect = {250, 47, 0, 85, 30, LIGHT_GRAY};
+	drawRectangle(scorePlaceHolderRect);
+
+	drawDynamicText("%d", score, scoreDynamicBuffer, 270, 50, textSize);
+
+	C2D_DrawText(&nextStaticTexts[0], C2D_AtBaseline | C2D_WithColor, 250, 115, 0, textSize, textSize, WHITE);
+	Rectangle nextBlockPlaceHolderRect = {250, 125, 0, 100, 90, LIGHT_GRAY};
+	drawRectangle(nextBlockPlaceHolderRect);
+
+	// I'm doing this check to correctly position the iBlock and the oBlock.
+	if (nextBlock.id == 3)
+	{
+		drawBlock(nextBlock, 200, 155);
+	}
+
+	else if (nextBlock.id == 4)
+	{
+		drawBlock(nextBlock, 200, 150);
+	}
+
+	else
+	{
+		drawBlock(nextBlock, 210, 145);
+	}
 
 	C3D_FrameEnd(0);
 }
@@ -509,14 +539,20 @@ void renderBottomScreen()
 	C2D_TargetClear(bottomScreen, BLACK);
 	C2D_SceneBegin(bottomScreen);
 
+	if (isGameOver || isGamePaused)
+	{
+		Rectangle textPlaceHolder = {60, 80, 0, 200, 50, LIGHT_GRAY};
+		drawRectangle(textPlaceHolder);
+	}
+
 	if (isGamePaused)
 	{
-		C2D_DrawText(&pauseStaticTexts[0], C2D_AtBaseline | C2D_WithColor, 100, 60, 0, textSize, textSize, WHITE);
+		C2D_DrawText(&pauseStaticTexts[0], C2D_AtBaseline | C2D_WithColor, 80, 120, 0, textSize, textSize, WHITE);
 	}
 
 	else if (isGameOver)
 	{
-		C2D_DrawText(&gameOverStaticTexts[0], C2D_AtBaseline | C2D_WithColor, 100, 60, 0, textSize, textSize, WHITE);
+		C2D_DrawText(&gameOverStaticTexts[0], C2D_AtBaseline | C2D_WithColor, 90, 120, 0, textSize, textSize, WHITE);
 	}
 
 	C3D_FrameEnd(0);
@@ -533,7 +569,7 @@ int main(int argc, char *argv[])
 	topScreen = C2D_CreateScreenTarget(GFX_TOP, GFX_LEFT);
 	bottomScreen = C2D_CreateScreenTarget(GFX_BOTTOM, GFX_LEFT);
 
-	textDynamicBuffer = C2D_TextBufNew(4096);
+	scoreDynamicBuffer = C2D_TextBufNew(4096);
 
 	pauseTextStaticBuffer = C2D_TextBufNew(1024);
 	C2D_TextParse(&pauseStaticTexts[0], pauseTextStaticBuffer, "Game Paused");
@@ -542,6 +578,14 @@ int main(int argc, char *argv[])
 	gameOverTextStaticBuffer = C2D_TextBufNew(1024);
 	C2D_TextParse(&gameOverStaticTexts[0], gameOverTextStaticBuffer, "Game Over");
 	C2D_TextOptimize(&gameOverStaticTexts[0]);
+
+	scoreTextStaticBuffer = C2D_TextBufNew(1024);
+	C2D_TextParse(&scoreStaticTexts[0], scoreTextStaticBuffer, "Score");
+	C2D_TextOptimize(&scoreStaticTexts[0]);
+
+	nextTextStaticBuffer = C2D_TextBufNew(1024);
+	C2D_TextParse(&nextStaticTexts[0], nextTextStaticBuffer, "Next");
+	C2D_TextOptimize(&nextStaticTexts[0]);
 
 	initializeGrid();
 	initializeBlocks();
@@ -557,7 +601,7 @@ int main(int argc, char *argv[])
 
 		int keyDown = hidKeysDown();
 
-		if (keyDown & KEY_START)
+		if (!isGameOver && (keyDown & KEY_START || keyDown & KEY_TOUCH))
 		{
 			isGamePaused = !isGamePaused;
 		}
@@ -573,8 +617,11 @@ int main(int argc, char *argv[])
 	}
 
 	// Delete the text buffers
-	C2D_TextBufDelete(textDynamicBuffer);
+	C2D_TextBufDelete(scoreDynamicBuffer);
 	C2D_TextBufDelete(pauseTextStaticBuffer);
+	C2D_TextBufDelete(gameOverTextStaticBuffer);
+	C2D_TextBufDelete(scoreTextStaticBuffer);
+	C2D_TextBufDelete(nextTextStaticBuffer);
 
 	// Deinit libs
 	C2D_Fini();
