@@ -16,8 +16,11 @@ C3D_RenderTarget *bottomScreen = nullptr;
 
 C2D_TextBuf textDynamicBuffer;
 
-C2D_TextBuf textStaticBuffer;
-C2D_Text staticTexts[1];
+C2D_TextBuf pauseTextStaticBuffer;
+C2D_Text pauseStaticTexts[1];
+
+C2D_TextBuf gameOverTextStaticBuffer;
+C2D_Text gameOverStaticTexts[1];
 
 float textSize = 1.0f;
 
@@ -281,11 +284,11 @@ void initializeGrid()
 
 double lastUpdateTime = 0;
 
-bool eventTriggered(float deltaTime, float intervalUpdate)
+bool eventTriggered(int counter)
 {
-	lastUpdateTime += deltaTime;
+	lastUpdateTime += counter;
 
-	if (lastUpdateTime >= intervalUpdate)
+	if (lastUpdateTime >= 80)
 	{
 		lastUpdateTime = 0;
 
@@ -295,8 +298,19 @@ bool eventTriggered(float deltaTime, float intervalUpdate)
 	return false;
 }
 
+int counter = 0;
 void update(int keyDown)
 {
+
+	if (isGameOver && keyDown != 0)
+	{
+		initializeGrid();
+		isGameOver = false;
+		score = 0;
+		currentBlock = getRandomBlock();
+		nextBlock = getRandomBlock();
+	}
+
 	if (keyDown & KEY_UP)
 	{
 		rotateBlock(currentBlock);
@@ -322,7 +336,9 @@ void update(int keyDown)
 		}
 	}
 
-	if (!isGameOver && keyDown & KEY_DOWN)
+	int keyHeld = hidKeysHeld();
+
+	if (!isGameOver && keyHeld & KEY_DOWN)
 	{
 		score++;
 		moveBlock(currentBlock, 1, 0);
@@ -334,16 +350,20 @@ void update(int keyDown)
 		}
 	}
 
-	// if (!isGameOver && eventTriggered(deltaTime, 0.5))
-	// {
-	//     moveBlock(currentBlock, 1, 0);
+	counter++;
 
-	//     if (isBlockOutside(currentBlock) || !blockFits(currentBlock))
-	//     {
-	//         moveBlock(currentBlock, -1, 0);
-	//         lockBlock(currentBlock);
-	//     }
-	// }
+	if (!isGameOver && eventTriggered(counter))
+	{
+		counter = 0;
+
+		moveBlock(currentBlock, 1, 0);
+
+		if (isBlockOutside(currentBlock) || !blockFits(currentBlock))
+		{
+			moveBlock(currentBlock, -1, 0);
+			lockBlock(currentBlock);
+		}
+	}
 }
 
 void initializeBlocks()
@@ -478,10 +498,7 @@ void renderTopScreen()
 
 	drawBlock(currentBlock);
 
-	if (isGamePaused)
-	{
-		C2D_DrawText(&staticTexts[0], C2D_AtBaseline | C2D_WithColor, 110, 60, 0, textSize, textSize, WHITE);
-	}
+	drawDynamicText("score: %d", score, textDynamicBuffer, 300, 50, textSize);
 
 	C3D_FrameEnd(0);
 }
@@ -492,9 +509,15 @@ void renderBottomScreen()
 	C2D_TargetClear(bottomScreen, BLACK);
 	C2D_SceneBegin(bottomScreen);
 
-	// drawRectangle(bottomBounds);
+	if (isGamePaused)
+	{
+		C2D_DrawText(&pauseStaticTexts[0], C2D_AtBaseline | C2D_WithColor, 100, 60, 0, textSize, textSize, WHITE);
+	}
 
-	// drawDynamicText("Total collisions: %d", 0, textDynamicBuffer, 150, 175, textSize);
+	else if (isGameOver)
+	{
+		C2D_DrawText(&gameOverStaticTexts[0], C2D_AtBaseline | C2D_WithColor, 100, 60, 0, textSize, textSize, WHITE);
+	}
 
 	C3D_FrameEnd(0);
 }
@@ -510,12 +533,15 @@ int main(int argc, char *argv[])
 	topScreen = C2D_CreateScreenTarget(GFX_TOP, GFX_LEFT);
 	bottomScreen = C2D_CreateScreenTarget(GFX_BOTTOM, GFX_LEFT);
 
-	textStaticBuffer = C2D_TextBufNew(1024);
 	textDynamicBuffer = C2D_TextBufNew(4096);
 
-	C2D_TextParse(&staticTexts[0], textStaticBuffer, "Game Paused");
+	pauseTextStaticBuffer = C2D_TextBufNew(1024);
+	C2D_TextParse(&pauseStaticTexts[0], pauseTextStaticBuffer, "Game Paused");
+	C2D_TextOptimize(&pauseStaticTexts[0]);
 
-	C2D_TextOptimize(&staticTexts[0]);
+	gameOverTextStaticBuffer = C2D_TextBufNew(1024);
+	C2D_TextParse(&gameOverStaticTexts[0], gameOverTextStaticBuffer, "Game Over");
+	C2D_TextOptimize(&gameOverStaticTexts[0]);
 
 	initializeGrid();
 	initializeBlocks();
@@ -548,7 +574,7 @@ int main(int argc, char *argv[])
 
 	// Delete the text buffers
 	C2D_TextBufDelete(textDynamicBuffer);
-	C2D_TextBufDelete(textStaticBuffer);
+	C2D_TextBufDelete(pauseTextStaticBuffer);
 
 	// Deinit libs
 	C2D_Fini();
